@@ -47,3 +47,11 @@ firestore-debug.log
 
 # Config local
 public/config.json
+
+# Firebase CLI y herramientas globales
+firebase
+firebase.cmd
+firebase.ps1
+
+# Evitar que se suba %APPDATA% o npm global
+npm/
