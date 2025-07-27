@@ -50,7 +50,7 @@ const CustomerManager: React.FC = () => {
         await actualizarCliente(editId, form);
         setSuccess('Cliente actualizado');
       } else {
-        await crearCliente(form as any);
+        await crearCliente(form as Customer);
         setSuccess('Cliente creado');
       }
       setModalOpen(false);
@@ -73,12 +73,13 @@ const CustomerManager: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (!window.confirm('¿Eliminar cliente?')) return;
     setLoading(true);
+    setError(null);
     try {
       await eliminarCliente(id);
-      setSuccess('Cliente eliminado');
-      fetchClientes();
-    } catch (e) {
-      setError('Error al eliminar');
+      setClientes(clientes.filter(c => c.id !== id));
+      setSuccess('Cliente eliminado correctamente');
+    } catch (error) {
+      setError('Error al eliminar cliente');
     } finally {
       setLoading(false);
     }

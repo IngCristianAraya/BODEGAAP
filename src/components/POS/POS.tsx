@@ -173,8 +173,9 @@ const POS: React.FC = () => {
         productName: item.product.name,
         quantity: item.quantity,
         unitPrice: item.product.salePrice ?? 0,
-        salePrice: item.product.salePrice ?? 0
+        total: (item.product.salePrice ?? 0) * item.quantity
       })),
+
       total: state.total,
       subtotal: state.subtotal ?? 0,
       discount: state.discount ?? 0,
@@ -186,10 +187,12 @@ const POS: React.FC = () => {
       cashierId: user?.uid || '',
       cashierName: user?.displayName || user?.email || '',
       receiptNumber,
-    };  
-      await crearVenta(venta);
-      // Descontar stock
-      await descontarStockProductos(venta.products);
+    };
+    // Generar un id único para la venta (por ejemplo, usando receiptNumber)
+    venta.id = receiptNumber;
+    await crearVenta(venta);
+    // Descontar stock usando los items de la venta
+    await descontarStockProductos(venta.items);
       setSuccessMsg(`¡Venta procesada exitosamente con ${paymentMethod === 'cash' ? 'efectivo' : paymentMethod === 'card' ? 'tarjeta' : paymentMethod === 'yape' ? 'Yape' : paymentMethod === 'plin' ? 'Plin' : paymentMethod}!`);
       setShowSuccess(true);
       setVentaTicket({

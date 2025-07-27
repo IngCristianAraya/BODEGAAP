@@ -17,9 +17,9 @@ const LoginForm: React.FC = () => {
     setError("");
     try {
       await login(email, password);
-    } catch (error: any) {
+    } catch (error: unknown) {
       let message = "Ocurrió un error al iniciar sesión.";
-      if (error && error.message) {
+      if (error instanceof Error && error.message) {
         if (error.message.includes("auth/user-not-found")) message = "Usuario no encontrado. Verifica el correo electrónico.";
         else if (error.message.includes("auth/wrong-password")) message = "Contraseña incorrecta.";
         else if (error.message.includes("auth/invalid-email")) message = "Correo electrónico inválido.";

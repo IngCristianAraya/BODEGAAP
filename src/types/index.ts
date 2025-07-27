@@ -1,4 +1,4 @@
-export type { Product } from './inventory';
+export type Product = import("./inventory").Product;
 
 export interface Customer {
   id: string;

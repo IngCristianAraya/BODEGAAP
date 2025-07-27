@@ -12,7 +12,7 @@ import Reports from './components/Reports/Reports';
 import LowStockManager from './components/LowStock/LowStockManager';
 
 const AppContent: React.FC = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, logout } = useAuth();
   const [currentPage, setCurrentPage] = useState('dashboard');
 
   if (loading) {
@@ -48,7 +48,6 @@ const AppContent: React.FC = () => {
     }
   };
 
-  const { logout } = useAuth();
   const handleLogout = async () => {
     try {
       await logout();

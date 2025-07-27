@@ -68,7 +68,7 @@ const SupplierManager: React.FC = () => {
         address,
         email: form.email || '',
         products: [],
-        createdAt: Timestamp.now(),
+        createdAt: new Date(),
       };
       console.log('Proveedor a guardar:', proveedorNuevo);
       await crearProveedor(proveedorNuevo);

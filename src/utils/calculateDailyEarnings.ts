@@ -20,7 +20,7 @@ export function calculateDailyEarnings(ventas: Sale[], productos: Product[]): nu
       ((venta as any).items || venta.products || []).forEach((item: any) => {
         const prod = productos.find((p) => p.id === item.productId);
         const cost = prod?.costPrice ?? prod?.purchasePrice ?? 0;
-        const salePrice = item.salePrice ?? item.price ?? 0;
+        const salePrice = item.unitPrice ?? 0;
         const profit = (salePrice - cost) * (item.quantity ?? 1);
         totalProfit += profit;
       });

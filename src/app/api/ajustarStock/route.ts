@@ -15,9 +15,18 @@ if (!getApps().length) {
 
 const db = getFirestore();
 
+export interface AjustarStockBody {
+  productId: string;
+  newStock: number;
+  motivo: string;
+  user: string;
+  prevStock: number;
+  date: string;
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const { productId, newStock, motivo, user, prevStock, date } = await req.json();
+    const { productId, newStock, motivo, user, prevStock, date }: AjustarStockBody = await req.json();
     if (!productId || typeof newStock !== 'number' || !motivo) {
       return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 });
     }

@@ -12,11 +12,14 @@ import { useAuth } from '../../contexts/AuthContext';
 import { obtenerVentas } from '../../lib/firestoreSales';
 import { obtenerProductos } from '../../lib/firestoreProducts';
 
+import type { Product } from '../../types/inventory';
+import type { Sale } from '../../types/index';
+
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
-  const [ventas, setVentas] = React.useState<any[]>([]);
-  const [productos, setProductos] = React.useState<any[]>([]);
-  const [topProducts, setTopProducts] = React.useState<any[]>([]);
+  const [ventas, setVentas] = React.useState<Sale[]>([]);
+  const [productos, setProductos] = React.useState<Product[]>([]);
+  const [topProducts, setTopProducts] = React.useState<{ name: string; sales: number; revenue: number }[]>([]);
   const [loadingTop, setLoadingTop] = React.useState(false);
 
   // Calcular ventas reales de la semana agrupadas por día
@@ -82,7 +85,7 @@ const Dashboard: React.FC = () => {
         // Buscar el producto para obtener la categoría
         const prod = productos.find((p: any) => p.id === item.productId);
         const cat = prod?.category || 'Otros';
-        ventasPorCategoria[cat] = (ventasPorCategoria[cat] || 0) + ((typeof item.salePrice === 'number' && typeof item.quantity === 'number') ? (item.salePrice * item.quantity) : 0);
+        ventasPorCategoria[cat] = (ventasPorCategoria[cat] || 0) + (typeof item.total === 'number' ? item.total : 0);
       });
     });
     // Formatear para el gráfico
