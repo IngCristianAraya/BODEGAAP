@@ -1,4 +1,6 @@
 import React from 'react';
+import type { Product } from '../../types/inventory';
+import type { Sale } from '../../types/index';
 import { 
   ShoppingCart, 
   Package, 
@@ -12,8 +14,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import { obtenerVentas } from '../../lib/firestoreSales';
 import { obtenerProductos } from '../../lib/firestoreProducts';
 
-import type { Product } from '../../types/inventory';
-import type { Sale } from '../../types/index';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();

@@ -1,7 +1,7 @@
 import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, Timestamp, QuerySnapshot, DocumentData } from 'firebase/firestore';
 import { db } from './firebase';
+import type { Product } from '../types/inventory';
 import type { Sale, SaleItem } from '../types/index';
-import { Product } from '../types/inventory';
 
 const COLLECTION = 'sales';
 
@@ -29,13 +29,13 @@ export async function obtenerVentas(): Promise<Sale[]> {
     const data = docSnap.data();
     return {
       id: docSnap.id,
-      items: Array.isArray(data.items) ? data.items.map((item: SaleItem) => ({
-        productId: String(item.productId ?? ''),
-        productName: String(item.productName ?? ''),
-        quantity: Number(item.quantity ?? 0),
-        unitPrice: Number(item.unitPrice ?? 0),
+      items: Array.isArray(data.items) ? data.items.map((item: Partial<SaleItem>) => ({
+        productId: typeof item.productId === 'string' ? item.productId : '',
+        productName: typeof item.productName === 'string' ? item.productName : '',
+        quantity: typeof item.quantity === 'number' ? item.quantity : 0,
+        unitPrice: typeof item.unitPrice === 'number' ? item.unitPrice : 0,
         
-        total: typeof item.total === 'number' ? item.total : (Number(item.unitPrice ?? item.salePrice ?? 0) * Number(item.quantity ?? 0)),
+        total: typeof item.total === 'number' ? item.total : (Number(item.unitPrice ?? 0) * Number(item.quantity ?? 0)),
       })) : [],
       total: typeof data.total === 'number' ? data.total : 0,
       subtotal: typeof data.subtotal === 'number' ? data.subtotal : 0,

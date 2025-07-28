@@ -80,19 +80,23 @@ export async function obtenerMovimientosProducto(productId: string): Promise<Inv
   const snapshot = await getDocs(collection(db, MOVEMENTS_COLLECTION));
   return snapshot.docs
     .map(doc => {
-      const mov = { id: doc.id, ...doc.data() };
+      const mov = { id: doc.id, ...doc.data() } as Record<string, unknown>;
       return {
-        id: mov.id,
-        productId: (mov as any).productId || '',
-        quantity: typeof (mov as any).quantity === 'number' ? (mov as any).quantity : 0,
-        costPrice: typeof (mov as any).costPrice === 'number' ? (mov as any).costPrice : 0,
-        date: typeof (mov as any).date === 'string' ? (mov as any).date : ((mov as any).date?.toDate ? (mov as any).date.toDate().toISOString() : null),
-        type: (mov as any).type || 'ingreso',
-        cashierEmail: (mov as any).cashierEmail || '',
-        motivo: (mov as any).motivo || undefined,
-      };
+        id: String(mov.id ?? ''),
+        productId: typeof mov.productId === 'string' ? mov.productId : '',
+        quantity: typeof mov.quantity === 'number' ? mov.quantity : 0,
+        costPrice: typeof mov.costPrice === 'number' ? mov.costPrice : 0,
+        date: typeof mov.date === 'string'
+          ? mov.date
+          : (mov.date && typeof (mov.date as { toDate?: () => Date }).toDate === 'function'
+              ? (mov.date as { toDate: () => Date }).toDate().toISOString()
+              : null),
+        type: typeof mov.type === 'string' ? (mov.type as 'ingreso' | 'egreso' | 'ajuste') : 'ingreso',
+        cashierEmail: typeof mov.cashierEmail === 'string' ? mov.cashierEmail : '',
+        motivo: typeof mov.motivo === 'string' ? mov.motivo : undefined,
+      } as InventoryMovement;
     })
-    .filter((mov: any) => mov.productId === productId);
+    .filter((mov: InventoryMovement) => mov.productId === productId);
 }
 
 // Recalcular stock y averageCost de un producto tras un ingreso

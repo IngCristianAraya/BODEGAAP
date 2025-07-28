@@ -19,7 +19,18 @@ import { categoryData, CategoryKey } from '@/lib/constants/categoryData';
 
 const POS: React.FC = () => {
   const [showTicket, setShowTicket] = useState(false);
-  const [ventaTicket, setVentaTicket] = useState<any>(null);
+  const [ventaTicket, setVentaTicket] = useState<{
+    receiptNumber: string;
+    cashierName: string;
+    customerName?: string;
+    paymentMethod: string;
+    date: string;
+    items: { productName: string; quantity: number; unitPrice: number }[];
+    subtotal: number;
+    discount: number;
+    igv: number;
+    total: number;
+  } | null>(null);
   const ticketRef = useRef<HTMLDivElement>(null);
   const handlePrint = useReactToPrint({
     contentRef: ticketRef,
@@ -161,13 +172,7 @@ const POS: React.FC = () => {
     }));
 
     const venta = {
-      products: cartItems.map((item: { product: Product; quantity: number }) => ({
-        productId: item.product.id,
-        productName: item.product.name,
-        quantity: item.quantity,
-        unitPrice: item.product.salePrice ?? 0,
-        salePrice: item.product.salePrice ?? 0
-      })),
+      id: receiptNumber,
       items: cartItems.map((item: { product: Product; quantity: number }) => ({
         productId: item.product.id,
         productName: item.product.name,
@@ -210,14 +215,20 @@ const POS: React.FC = () => {
       setShowTicket(true);
       setTimeout(() => setShowSuccess(false), 3000);
       clearCart();
-    } catch (error: any) {
-      console.error('Error al procesar la venta:', error);
-      let msg = 'Error al procesar la venta';
-      if (error?.message) msg += `: ${error.message}`;
-      if (error?.code) msg += ` (code: ${error.code})`;
-      setSuccessMsg(msg);
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 3500);
+    } catch (error: unknown) {
+    let msg = 'Error al procesar la venta';
+    if (typeof error === 'object' && error !== null) {
+      if ('message' in error && typeof (error as any).message === 'string') {
+        msg += `: ${(error as any).message}`;
+      }
+      if ('code' in error && typeof (error as any).code === 'string') {
+        msg += ` (code: ${(error as any).code})`;
+      }
+    }
+    console.error('Error al procesar la venta:', error);
+    setSuccessMsg(msg);
+    setShowSuccess(true);
+    setTimeout(() => setShowSuccess(false), 3500);
     }
   };
 

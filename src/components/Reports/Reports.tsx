@@ -9,17 +9,18 @@ import { obtenerProveedores } from '../../lib/firestoreSuppliers';
 import { obtenerVentas } from '../../lib/firestoreSales';
 import { obtenerProductos } from '../../lib/firestoreProducts';
 import { useAuth } from '../../contexts/AuthContext';
+import { Sale, Product, SaleItem } from '../../types/index';
 
 
 const Reports: React.FC = () => {
   const [showTicketModal, setShowTicketModal] = React.useState(false);
-  const [ventaSeleccionada, setVentaSeleccionada] = React.useState<any | null>(null);
+  const [ventaSeleccionada, setVentaSeleccionada] = React.useState<Sale | null>(null);
   const ticketRef = useRef<HTMLDivElement>(null);
   const [reportType, setReportType] = useState<'ventas' | 'inventario' | 'ganancias' | 'movimientos'>('ventas');
-  const [ventas, setVentas] = useState<any[]>([]);
+  const [ventas, setVentas] = useState<Sale[]>([]);
   const [fechaInicio, setFechaInicio] = useState<string>('');
   const [fechaFin, setFechaFin] = useState<string>('');
-  const [productos, setProductos] = useState<any[]>([]);
+  const [productos, setProductos] = useState<Product[]>([]);
   const [ventasPage, setVentasPage] = useState(1);
   const [inventarioPage, setInventarioPage] = useState(1);
   const VENTAS_POR_PAGINA = 10;
@@ -142,17 +143,17 @@ const Reports: React.FC = () => {
     }},
     { key: 'cashierName', label: 'Cajero' },
     { key: 'customerName', label: 'Cliente' },
-    { key: 'total', label: 'Total', format: (val: any) => `S/ ${Number(val).toFixed(2)}` },
-    { key: 'paymentMethod', label: 'Método de Pago', format: (val: any) => val === 'cash' ? 'Efectivo' : val },
-    { key: 'items', label: 'Detalle', format: (_: any, row: any) => {
-      const arr = (Array.isArray(row.items) && row.items.length > 0 ? row.items : row.products) || [];
-      return arr.map((i: any) => {
-        const nombre = i.name || i.productName || '';
-        const cantidad = i.quantity || 1;
-        const precio = typeof i.salePrice === 'number' ? i.salePrice : (typeof i.price === 'number' ? i.price : null);
-        const subtotal = precio !== null ? (precio * cantidad) : null;
-        return `${nombre}${cantidad > 1 ? ` x${cantidad}` : ''}${precio !== null ? ` (S/ ${precio.toFixed(2)} c/u)` : ''}${subtotal !== null ? ` Subtotal: S/ ${subtotal.toFixed(2)}` : ''}`;
-      }).join('; ');
+    { key: 'total', label: 'Total', format: (val: number) => `S/ ${val.toFixed(2)}` },
+    { key: 'paymentMethod', label: 'Método de Pago', format: (val: string) => val === 'cash' ? 'Efectivo' : val },
+    { key: 'items', label: 'Detalle', format: (_: unknown, row: Sale) => {
+      const arr = Array.isArray(row.items) && row.items.length > 0 ? row.items : [];
+      return arr.map((i: SaleItem) => {
+        const nombre = i.productName;
+        const cantidad = i.quantity;
+        const precio = i.unitPrice;
+        const subtotal = typeof precio === 'number' ? (precio * cantidad) : '-';
+        return `${nombre} x${cantidad} S/.${subtotal}`;
+      }).join(', ');
     } },
   ];
 
@@ -176,7 +177,7 @@ const Reports: React.FC = () => {
           if (!fechaInicio && !fechaFin) return true;
           let fecha = null;
           if (v.createdAt instanceof Date) fecha = v.createdAt;
-          else if (v.createdAt && typeof v.createdAt === 'object' && 'seconds' in v.createdAt) fecha = new Date(v.createdAt.seconds * 1000);
+          else if (v.createdAt && typeof v.createdAt === 'object' && v.createdAt !== null && 'seconds' in v.createdAt && typeof (v.createdAt as any).seconds === 'number') fecha = new Date((v.createdAt as any).seconds * 1000);
           else if (typeof v.createdAt === 'string') fecha = new Date(v.createdAt);
           if (!fecha || isNaN(fecha.getTime())) return false;
           if (fechaInicio && fecha < new Date(fechaInicio + 'T00:00:00')) return false;
@@ -220,7 +221,7 @@ const Reports: React.FC = () => {
           if (!fechaInicio && !fechaFin) return true;
           let fecha = null;
           if (v.createdAt instanceof Date) fecha = v.createdAt;
-          else if (v.createdAt && typeof v.createdAt === 'object' && 'seconds' in v.createdAt) fecha = new Date(v.createdAt.seconds * 1000);
+          else if (v.createdAt && typeof v.createdAt === 'object' && v.createdAt !== null && 'seconds' in v.createdAt && typeof (v.createdAt as any).seconds === 'number') fecha = new Date((v.createdAt as any).seconds * 1000);
           else if (typeof v.createdAt === 'string') fecha = new Date(v.createdAt);
           if (!fecha || isNaN(fecha.getTime())) return false;
           if (fechaInicio && fecha < new Date(fechaInicio + 'T00:00:00')) return false;
@@ -365,7 +366,7 @@ const Reports: React.FC = () => {
                   if (!fechaInicio && !fechaFin) return true;
                   let fecha = null;
                   if (v.createdAt instanceof Date) fecha = v.createdAt;
-                  else if (v.createdAt && typeof v.createdAt === 'object' && 'seconds' in v.createdAt) fecha = new Date(v.createdAt.seconds * 1000);
+                  else if (v.createdAt && typeof v.createdAt === 'object' && v.createdAt !== null && 'seconds' in v.createdAt && typeof (v.createdAt as any).seconds === 'number') fecha = new Date((v.createdAt as any).seconds * 1000);
                   else if (typeof v.createdAt === 'string') fecha = new Date(v.createdAt);
                   if (!fecha || isNaN(fecha.getTime())) return false;
                   if (fechaInicio && fecha < new Date(fechaInicio + 'T00:00:00')) return false;
@@ -381,11 +382,15 @@ const Reports: React.FC = () => {
                 })
                 .slice((ventasPage - 1) * VENTAS_POR_PAGINA, ventasPage * VENTAS_POR_PAGINA)
                 .map((v, idx) => {
-                  const arr = (Array.isArray(v.items) && v.items.length > 0 ? v.items : v.products) || [];
+                  const arr = Array.isArray(v.items) && v.items.length > 0 ? v.items : [];
                   return (
                     <tr key={v.id || idx} className="border-b last:border-b-0 hover:bg-gray-50 transition-colors">
                       <td className="py-2 px-4 text-center">{v.receiptNumber || '-'}</td>
-                      <td className="py-2 px-4 text-center">{v.createdAt ? (typeof v.createdAt === 'object' && 'seconds' in v.createdAt ? new Date(v.createdAt.seconds * 1000).toLocaleDateString() : new Date(v.createdAt).toLocaleDateString()) : '-'}</td>
+                      <td className="py-2 px-4 text-center">{v.createdAt
+  ? (typeof v.createdAt === 'object' && v.createdAt !== null && 'seconds' in v.createdAt && typeof (v.createdAt as { seconds?: unknown }).seconds === 'number'
+      ? new Date((v.createdAt as { seconds: number }).seconds * 1000).toLocaleDateString()
+      : new Date(v.createdAt as string | number | Date).toLocaleDateString())
+  : '-'}</td>
                       <td className="py-2 px-4 text-center">{v.cashierName || '-'}</td>
                       <td className="py-2 px-4">
                         <ul className="list-disc ml-4">
@@ -430,7 +435,7 @@ const Reports: React.FC = () => {
       if (!fechaInicio && !fechaFin) return true;
       let fecha = null;
       if (v.createdAt instanceof Date) fecha = v.createdAt;
-      else if (v.createdAt && typeof v.createdAt === 'object' && 'seconds' in v.createdAt) fecha = new Date(v.createdAt.seconds * 1000);
+      else if (v.createdAt && typeof v.createdAt === 'object' && v.createdAt !== null && 'seconds' in v.createdAt && typeof (v.createdAt as any).seconds === 'number') fecha = new Date((v.createdAt as any).seconds * 1000);
       else if (typeof v.createdAt === 'string') fecha = new Date(v.createdAt);
       if (!fecha || isNaN(fecha.getTime())) return false;
       if (fechaInicio && fecha < new Date(fechaInicio + 'T00:00:00')) return false;
@@ -549,7 +554,7 @@ const Reports: React.FC = () => {
                   if (!fechaInicio && !fechaFin) return true;
                   let fecha = null;
                   if (v.createdAt instanceof Date) fecha = v.createdAt;
-                  else if (v.createdAt && typeof v.createdAt === 'object' && 'seconds' in v.createdAt) fecha = new Date(v.createdAt.seconds * 1000);
+                  else if (v.createdAt && typeof v.createdAt === 'object' && v.createdAt !== null && 'seconds' in v.createdAt && typeof (v.createdAt as any).seconds === 'number') fecha = new Date((v.createdAt as any).seconds * 1000);
                   else if (typeof v.createdAt === 'string') fecha = new Date(v.createdAt);
                   if (!fecha || isNaN(fecha.getTime())) return false;
                   if (fechaInicio && fecha < new Date(fechaInicio + 'T00:00:00')) return false;
@@ -558,7 +563,7 @@ const Reports: React.FC = () => {
                 }).forEach(v => {
                   let fecha = null;
                   if (v.createdAt instanceof Date) fecha = v.createdAt;
-                  else if (v.createdAt && typeof v.createdAt === 'object' && 'seconds' in v.createdAt) fecha = new Date(v.createdAt.seconds * 1000);
+                  else if (v.createdAt && typeof v.createdAt === 'object' && v.createdAt !== null && 'seconds' in v.createdAt && typeof (v.createdAt as any).seconds === 'number') fecha = new Date((v.createdAt as any).seconds * 1000);
                   else if (typeof v.createdAt === 'string') fecha = new Date(v.createdAt);
                   if (!fecha || isNaN(fecha.getTime())) return;
                   // Agrupa por fecha exacta (yyyy-mm-dd, ignorando hora)
@@ -572,7 +577,7 @@ const Reports: React.FC = () => {
                   // Calcular costo y ganancia por venta
                   let costoVenta = 0;
                   let gananciaVenta = 0;
-                  ((v.items && v.items.length > 0 ? v.items : v.products) || []).forEach((item: any) => {
+                  (Array.isArray(v.items) && v.items.length > 0 ? v.items : []).forEach((item: any) => {
                     const cantidad = item.quantity || 1;
                     const precio = typeof item.salePrice === 'number' ? item.salePrice : (typeof item.price === 'number' ? item.price : 0);
                     const producto = productos.find((p: any) => p.id === item.productId);
@@ -617,7 +622,7 @@ const Reports: React.FC = () => {
 // Adapta la venta seleccionada a la estructura esperada por TicketVenta
 function mapVentaToTicket(venta: any) {
   // Asegura compatibilidad de campos y formatos
-  const items = ((venta.items && Array.isArray(venta.items)) ? venta.items : venta.products || []).map((i: any) => ({
+  const items = (Array.isArray(venta.items) ? venta.items : []).map((i: any) => ({
     productName: i.name || i.productName || '',
     quantity: i.quantity || 1,
     unitPrice: typeof i.salePrice === 'number' ? i.salePrice : (typeof i.price === 'number' ? i.price : 0),

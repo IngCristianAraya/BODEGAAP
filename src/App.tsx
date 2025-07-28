@@ -11,7 +11,9 @@ import Inventory from './components/Inventory/Inventory';
 import Reports from './components/Reports/Reports';
 import LowStockManager from './components/LowStock/LowStockManager';
 
+
 const AppContent: React.FC = () => {
+  // Mover el hook useAuth a la raíz del componente
   const { user, loading, logout } = useAuth();
   const [currentPage, setCurrentPage] = useState('dashboard');
 

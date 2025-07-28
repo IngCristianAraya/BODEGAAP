@@ -1,5 +1,4 @@
-import { Sale } from '../types';
-import { Product } from '../types';
+import { Sale, Product } from '../types/index';
 
 /**
  * Calcula la ganancia total del día a partir de las ventas y productos.
@@ -10,16 +9,16 @@ export function calculateDailyEarnings(ventas: Sale[], productos: Product[]): nu
   let totalProfit = 0;
   ventas.forEach((venta) => {
     // Compatibilidad: fecha puede ser string o Date
-    const fechaRaw = (venta as any).createdAt ?? venta.date;
+    const fechaRaw = venta.createdAt;
     const fecha = fechaRaw instanceof Date ? fechaRaw : new Date(fechaRaw);
     if (
       fecha.getFullYear() === hoy.getFullYear() &&
       fecha.getMonth() === hoy.getMonth() &&
       fecha.getDate() === hoy.getDate()
     ) {
-      ((venta as any).items || venta.products || []).forEach((item: any) => {
+      (Array.isArray(venta.items) ? venta.items : []).forEach((item: any) => {
         const prod = productos.find((p) => p.id === item.productId);
-        const cost = prod?.costPrice ?? prod?.purchasePrice ?? 0;
+        const cost = prod?.costPrice ?? 0;
         const salePrice = item.unitPrice ?? 0;
         const profit = (salePrice - cost) * (item.quantity ?? 1);
         totalProfit += profit;
