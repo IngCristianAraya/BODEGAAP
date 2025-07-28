@@ -29,7 +29,8 @@ export default function CloudinaryUpload({ onUpload }: { onUpload: (url: string)
       } else {
         setError("Error al subir imagen");
       }
-    } catch (err) {
+    } catch {
+      // Error de red o Cloudinary
       setError("Error de red o Cloudinary");
     } finally {
       setUploading(false);
