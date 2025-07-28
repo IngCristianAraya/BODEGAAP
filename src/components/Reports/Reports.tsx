@@ -30,7 +30,7 @@ const Reports: React.FC = () => {
   const { user } = useAuth();
 
   // Carga ventas y productos para reportes de ventas y ganancias
-  async function cargarVentasYProductos() {
+  const cargarVentasYProductos = async (): Promise<void> => {
     setLoading(true);
     setError(null);
     try {
@@ -40,7 +40,7 @@ const Reports: React.FC = () => {
       ]);
       setVentas(ventasData);
       setProductos(productosData);
-    } catch (err) {
+    } catch (_err) {
       setError('Error al cargar ventas/productos');
     } finally {
       setLoading(false);
@@ -48,13 +48,13 @@ const Reports: React.FC = () => {
   }
 
   // Carga productos para reporte de inventario
-  async function cargarProductos() {
+  const cargarProductos = async (): Promise<void> => {
     setLoading(true);
     setError(null);
     try {
       const productosData = await obtenerProductos();
       setProductos(productosData);
-    } catch (err) {
+    } catch (_err) {
       setError('Error al cargar inventario');
     } finally {
       setLoading(false);
@@ -81,10 +81,10 @@ const Reports: React.FC = () => {
   }, [reportType]);
 
   // Utilidades para exportar CSV y PDF con formato limpio y profesional
-  function toCSV(rows: any[], headers: { key: string, label: string, format?: (val: any, row: any) => string }[]): string {
+  function toCSV<T extends Record<string, unknown>>(rows: T[], headers: { key: string, label: string, format?: (val: unknown, row: T) => string }[]): string {
     // Cabeceras legibles
     const headerRow = headers.map(h => h.label).join(';');
-    const escape = (val: any) => `"${String(val ?? '').replace(/"/g, '""')}"`;
+    const escape = (val: unknown) => `"${String(val ?? '').replace(/"/g, '""')}"`;
     return [
       headerRow,
       ...rows.map(row => headers.map(h => {
@@ -98,17 +98,17 @@ const Reports: React.FC = () => {
   }
 
   // Exportar a PDF usando jsPDF/autotable
-  function exportPDF({
+  function exportPDF<T extends Record<string, unknown>>({
     rows,
     headers,
     title = '',
     filename = 'reporte.pdf',
   }: {
-    rows: any[],
-    headers: { key: string, label: string, format?: (val: any, row: any) => string }[],
+    rows: T[],
+    headers: { key: string, label: string, format?: (val: unknown, row: T) => string }[],
     title?: string,
     filename?: string,
-  }) {
+  }): void {
     const doc = new jsPDF();
     if (title) {
       doc.setFontSize(15);
@@ -130,32 +130,32 @@ const Reports: React.FC = () => {
     doc.save(filename);
   }
 
-  const ventasHeaders = [
-    { key: 'receiptNumber', label: 'N° Boleta' },
-    { key: 'createdAt', label: 'Fecha', format: (val: any) => {
-      if (!val) return '-';
-      if (typeof val === 'object' && val !== null && 'seconds' in val) {
-        const d = new Date(val.seconds * 1000);
-        return d.toLocaleDateString();
-      }
-      if (val instanceof Date) return val.toLocaleDateString();
-      return String(val);
-    }},
-    { key: 'cashierName', label: 'Cajero' },
-    { key: 'customerName', label: 'Cliente' },
-    { key: 'total', label: 'Total', format: (val: number) => `S/ ${val.toFixed(2)}` },
-    { key: 'paymentMethod', label: 'Método de Pago', format: (val: string) => val === 'cash' ? 'Efectivo' : val },
-    { key: 'items', label: 'Detalle', format: (_: unknown, row: Sale) => {
-      const arr = Array.isArray(row.items) && row.items.length > 0 ? row.items : [];
-      return arr.map((i: SaleItem) => {
-        const nombre = i.productName;
-        const cantidad = i.quantity;
-        const precio = i.unitPrice;
-        const subtotal = typeof precio === 'number' ? (precio * cantidad) : '-';
-        return `${nombre} x${cantidad} S/.${subtotal}`;
-      }).join(', ');
-    } },
-  ];
+  const ventasHeaders: { key: string, label: string, format?: (val: unknown, row: Record<string, unknown>) => string }[] = [
+  { key: 'receiptNumber', label: 'N° Boleta' },
+  { key: 'createdAt', label: 'Fecha', format: (val: unknown) => {
+    if (!val) return '-';
+    if (typeof val === 'object' && val !== null && 'seconds' in val) {
+      const d = new Date((val as { seconds: number }).seconds * 1000);
+      return d.toLocaleDateString();
+    }
+    if (val instanceof Date) return val.toLocaleDateString();
+    return String(val);
+  } },
+  { key: 'cashierName', label: 'Cajero' },
+  { key: 'customerName', label: 'Cliente' },
+  { key: 'total', label: 'Total', format: (val: unknown) => `S/ ${Number(val).toFixed(2)}` },
+  { key: 'paymentMethod', label: 'Método de Pago', format: (val: unknown) => val === 'cash' ? 'Efectivo' : String(val) },
+  { key: 'items', label: 'Detalle', format: (_: unknown, row: Record<string, unknown>) => {
+    const arr = Array.isArray((row as Sale).items) && (row as Sale).items.length > 0 ? (row as Sale).items : [];
+    return arr.map((i: SaleItem) => {
+      const nombre = i.productName;
+      const cantidad = i.quantity;
+      const precio = i.unitPrice;
+      const subtotal = typeof precio === 'number' ? (precio * cantidad) : '-';
+      return `${nombre} x${cantidad} S/.${subtotal}`;
+    }).join(', ');
+  } },
+];
 
   const inventarioHeaders = [
     { key: 'name', label: 'Producto' },
@@ -163,12 +163,12 @@ const Reports: React.FC = () => {
     { key: 'category', label: 'Categoría' },
     { key: 'unit', label: 'Unidad' },
     { key: 'stock', label: 'Stock' },
-    { key: 'salePrice', label: 'Precio Venta', format: (val: any) => `S/ ${Number(val).toFixed(2)}` },
-    { key: 'averageCost', label: 'Costo Promedio', format: (val: any) => `S/ ${Number(val).toFixed(2)}` },
+    { key: 'salePrice', label: 'Precio Venta', format: (val: unknown) => `S/ ${Number(val).toFixed(2)}` },
+    { key: 'averageCost', label: 'Costo Promedio', format: (val: unknown) => `S/ ${Number(val).toFixed(2)}` },
     { key: 'supplier', label: 'Proveedor' },
   ];
 
-  const exportReportCSV = () => {
+  const exportReportCSV = (): void => {
     let csv = '';
     let filename = '';
     if (reportType === 'ventas') {
@@ -210,8 +210,8 @@ const Reports: React.FC = () => {
 
   const exportReportPDF = () => {
     let filename = '';
-    let headers: any[] = [];
-    let rows: any[] = [];
+    let headers: { key: string; label: string; format?: (val: unknown, row: Record<string, unknown>) => string }[] = [];
+    let rows: Record<string, unknown>[] = [];
     let title = '';
     if (reportType === 'ventas') {
       filename = 'ventas.pdf';
@@ -622,16 +622,16 @@ const Reports: React.FC = () => {
 // Adapta la venta seleccionada a la estructura esperada por TicketVenta
 function mapVentaToTicket(venta: any) {
   // Asegura compatibilidad de campos y formatos
-  const items = (Array.isArray(venta.items) ? venta.items : []).map((i: any) => ({
+  const items = (Array.isArray(venta.items) ? venta.items : []).map((i: Record<string, unknown>) => ({
     productName: i.name || i.productName || '',
     quantity: i.quantity || 1,
     unitPrice: typeof i.salePrice === 'number' ? i.salePrice : (typeof i.price === 'number' ? i.price : 0),
   }));
   return {
-    receiptNumber: venta.receiptNumber || '-',
-    cashierName: venta.cashierName || '-',
-    customerName: venta.customerName || '',
-    paymentMethod: venta.paymentMethod === 'cash' ? 'Efectivo' : venta.paymentMethod || '-',
+    receiptNumber: String(venta.receiptNumber ?? '-'),
+    cashierName: String(venta.cashierName ?? '-'),
+    customerName: String(venta.customerName ?? ''),
+    paymentMethod: String(venta.paymentMethod === 'cash' ? 'Efectivo' : (venta.paymentMethod ?? '-')),
     date: venta.createdAt ? (typeof venta.createdAt === 'object' && 'seconds' in venta.createdAt ? new Date(venta.createdAt.seconds * 1000).toLocaleDateString() : new Date(venta.createdAt).toLocaleDateString()) : '-',
     items,
     subtotal: typeof venta.subtotal === 'number' ? venta.subtotal : (typeof venta.total === 'number' && typeof venta.igv === 'number' ? venta.total - (venta.igv || 0) + (venta.discount || 0) : 0),

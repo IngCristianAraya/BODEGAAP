@@ -8,7 +8,7 @@ interface InventoryMovement {
   productId: string;
   quantity: number;
   costPrice: number;
-  date: any;
+  date: unknown;
   type: 'ingreso' | 'egreso' | 'ajuste';
   motivo?: string;
   cashierEmail?: string;
@@ -82,9 +82,12 @@ const InventoryMovementsReport: React.FC = () => {
                 {paginatedMovements.map((mov, idx) => {
                   let dateStr = '';
                   if (mov.date) {
-                    const d = mov.date.seconds
-                      ? new Date(mov.date.seconds * 1000)
-                      : new Date(mov.date);
+                    let d: Date;
+                    if (typeof mov.date === 'object' && mov.date !== null && 'seconds' in mov.date) {
+                      d = new Date((mov.date as { seconds: number }).seconds * 1000);
+                    } else {
+                      d = new Date(mov.date as string | number);
+                    }
                     dateStr = d.toLocaleString('es-PE');
                   }
                   return (

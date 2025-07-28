@@ -220,7 +220,7 @@ useEffect(() => {
   // Productos con stock bajo (menos de 10 unidades)
   const lowStockProducts = productos.filter(p => p.stock < 10);
 
-  const handleSubmit = async (formData: any): Promise<boolean> => {
+  const handleSubmit = async (formData: Product): Promise<boolean> => {
     // Validaciones básicas
     if (!formData.name || !formData.category) {
       setError('Por favor completa los campos obligatorios');
@@ -236,7 +236,7 @@ useEffect(() => {
         // Actualizar producto existente
         await actualizarProducto(editProduct.id, {
           ...formData,
-          updatedAt: new Date()
+          updatedAt: new Date().toISOString()
         });
         // Actualizar la lista de productos
         const updatedProductos = productos.map(p =>
@@ -249,14 +249,11 @@ useEffect(() => {
         // Crear nuevo producto
         const newProductId = await crearProducto(
           {
-            ...formData,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            companyId,
+            ...((({id, stock, averageCost, createdAt, updatedAt, ...rest}) => rest)(formData))
           },
           {
             quantity: typeof formData.stock === 'number' && !isNaN(formData.stock) ? formData.stock : 0,
-            costPrice: typeof formData.costPrice === 'number' && !isNaN(formData.costPrice) ? formData.costPrice : 0,
+            costPrice: typeof formData.costPrice === 'number' && !isNaN(formData.costPrice) ? formData.costPrice : 0
           }
         );
         // Añadir el nuevo producto a la lista
@@ -265,11 +262,11 @@ useEffect(() => {
           id: newProductId,
           stock: typeof formData.stock === 'number' && !isNaN(formData.stock) ? formData.stock : 0,
           averageCost: typeof formData.costPrice === 'number' && !isNaN(formData.costPrice) ? formData.costPrice : 0,
-          createdAt: new Date(),
-          updatedAt: new Date(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
           companyId,
         };
-        setProductos([...productos, newProduct]);
+        setProductos([...productos, newProduct as Product]);
         setSuccess('Producto creado correctamente');
         showToast('Producto creado correctamente', 'success');
       }

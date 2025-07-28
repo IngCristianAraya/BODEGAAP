@@ -21,7 +21,7 @@ export interface Supplier {
   createdAt: Date;
 }
 
-export interface Sale {
+export interface Sale extends Record<string, unknown> {
   id: string;
   items: SaleItem[];
   total: number;
