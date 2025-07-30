@@ -1,5 +1,5 @@
 import React, { forwardRef } from 'react';
-import { Product } from '../../types/inventory';
+
 
 interface TicketVentaProps {
   venta: {

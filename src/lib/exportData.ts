@@ -1,5 +1,5 @@
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from './firebase';
+
+
 import JSZip from 'jszip';
 
 function arrayToCSV(arr: any[]): string {
@@ -10,17 +10,30 @@ function arrayToCSV(arr: any[]): string {
   return [header, ...rows].join('\r\n');
 }
 
-export async function exportAllDataToZip(uid: string) {
+export async function exportDataToCSV<T>(data: T[], filename: string) {
   const zip = new JSZip();
-  const entities = [
-    { name: 'productos', path: 'products' },
-    { name: 'ventas', path: 'sales' },
-    { name: 'movimientos_inventario', path: 'inventory_movements' }
-  ];
-  for (const entity of entities) {
-    const snapshot = await getDocs(collection(db, entity.path));
-    const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    zip.file(`${entity.name}.csv`, arrayToCSV(data));
-  }
+  zip.file(`${filename}.csv`, arrayToCSV(data));
   return zip.generateAsync({ type: 'blob' });
 }
+
+// Exporta todos los datos principales de la app (productos, ventas, clientes, proveedores) en un ZIP con un CSV por entidad
+import { obtenerProductos } from './firestoreProducts';
+import { obtenerVentas } from './firestoreSales';
+import { obtenerClientes } from './firestoreCustomers';
+import { obtenerProveedores } from './firestoreSuppliers';
+
+export async function exportAllDataToCSV(): Promise<Blob> {
+  const zip = new JSZip();
+  const [productos, ventas, clientes, proveedores] = await Promise.all([
+    obtenerProductos(),
+    obtenerVentas(),
+    obtenerClientes(),
+    obtenerProveedores()
+  ]);
+  zip.file('productos.csv', arrayToCSV(productos));
+  zip.file('ventas.csv', arrayToCSV(ventas));
+  zip.file('clientes.csv', arrayToCSV(clientes));
+  zip.file('proveedores.csv', arrayToCSV(proveedores));
+  return zip.generateAsync({ type: 'blob' });
+}
+

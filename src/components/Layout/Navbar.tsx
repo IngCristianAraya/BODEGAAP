@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, ShoppingCart, Package, Users, Truck, BarChart3, Settings, LogOut, CircleAlert } from 'lucide-react';
+import { Home, ShoppingCart, Package, Truck, BarChart3, Settings, LogOut, CircleAlert } from 'lucide-react';
 
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: Home },

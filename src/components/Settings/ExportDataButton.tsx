@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { exportAllDataToZip } from '../../lib/exportData';
+import { exportAllDataToCSV } from '../../lib/exportData';
 
 const ExportDataButton: React.FC = () => {
   const { user } = useAuth();
@@ -10,14 +10,15 @@ const ExportDataButton: React.FC = () => {
     if (!user) return;
     setLoading(true);
     try {
-      const blob = await exportAllDataToZip(user.uid);
+      const blob = await exportAllDataToCSV();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = 'bodegapp-backup.zip';
       a.click();
       window.URL.revokeObjectURL(url);
-    } catch (err) {
+    } catch {
+
       alert('Error al exportar datos');
     } finally {
       setLoading(false);

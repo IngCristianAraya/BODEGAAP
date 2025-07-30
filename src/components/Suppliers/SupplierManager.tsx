@@ -31,7 +31,7 @@ const SupplierManager: React.FC = () => {
     try {
       const data = await obtenerProveedores();
       setProveedores(data);
-    } catch (e) {
+    } catch {
       setError('Error al cargar proveedores');
     } finally {
       setLoading(false);
@@ -42,8 +42,7 @@ const SupplierManager: React.FC = () => {
     fetchProveedores();
   }, []);
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSave = async () => {
     setLoading(true);
     setError(null);
     setSuccess(null);
@@ -77,7 +76,7 @@ const SupplierManager: React.FC = () => {
       setForm(initialForm);
       setEditId(null);
       fetchProveedores();
-    } catch (e) {
+    } catch {
       setError('Error al guardar');
     } finally {
       setLoading(false);

@@ -1,5 +1,5 @@
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { setDoc, doc, Timestamp, getDoc } from 'firebase/firestore';
+import { setDoc, doc, Timestamp } from 'firebase/firestore';
 import { auth, db } from './firebase';
 
 export async function registrarUsuario(email: string, password: string, nombre: string, rol: string) {

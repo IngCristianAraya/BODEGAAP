@@ -47,8 +47,12 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ ok: true });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('Error al ajustar stock:', e);
-    return NextResponse.json({ error: e.message || 'Error en el servidor' }, { status: 500 });
+    let errorMsg = 'Error en el servidor';
+    if (typeof e === 'object' && e !== null && 'message' in e) {
+      errorMsg = String((e as { message?: string }).message) || errorMsg;
+    }
+    return NextResponse.json({ error: errorMsg }, { status: 500 });
   }
 }

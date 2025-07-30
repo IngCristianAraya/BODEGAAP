@@ -34,7 +34,7 @@ const PasswordModal: React.FC<PasswordModalProps> = ({ actionLabel, onConfirm, o
       } else {
         setError('Contraseña incorrecta');
       }
-    } catch (e) {
+    } catch {
       setError('No se pudo validar la contraseña');
     } finally {
       setValidating(false);

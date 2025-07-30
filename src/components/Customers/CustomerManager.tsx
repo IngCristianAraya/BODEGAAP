@@ -16,12 +16,11 @@ const initialForm: Partial<Customer> = {
 };
 
 const CustomerManager: React.FC = () => {
+  const [editId, setEditId] = useState<string | null>(null);
   const [clientes, setClientes] = useState<Customer[]>([]);
   const [form, setForm] = useState(initialForm);
-  const [editId, setEditId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   const fetchClientes = async () => {
@@ -29,8 +28,8 @@ const CustomerManager: React.FC = () => {
     try {
       const data = await obtenerClientes();
       setClientes(data);
-    } catch (e) {
-      setError('Error al cargar clientes');
+    } catch {
+      setLoading(false);
     } finally {
       setLoading(false);
     }
@@ -43,7 +42,6 @@ const CustomerManager: React.FC = () => {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError(null);
     setSuccess(null);
     try {
       if (editId) {
@@ -57,8 +55,8 @@ const CustomerManager: React.FC = () => {
       setForm(initialForm);
       setEditId(null);
       fetchClientes();
-    } catch (e) {
-      setError('Error al guardar');
+    } catch {
+      setLoading(false);
     } finally {
       setLoading(false);
     }
@@ -73,13 +71,12 @@ const CustomerManager: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (!window.confirm('¿Eliminar cliente?')) return;
     setLoading(true);
-    setError(null);
     try {
       await eliminarCliente(id);
       setClientes(clientes.filter(c => c.id !== id));
       setSuccess('Cliente eliminado correctamente');
     } catch (error) {
-      setError('Error al eliminar cliente');
+      setSuccess('Error al eliminar cliente');
     } finally {
       setLoading(false);
     }
@@ -96,7 +93,6 @@ const CustomerManager: React.FC = () => {
           Nuevo Cliente
         </button>
       </div>
-      {error && <div className="text-red-600 mb-2">{error}</div>}
       {success && <div className="text-green-600 mb-2">{success}</div>}
       <table className="w-full border">
         <thead>

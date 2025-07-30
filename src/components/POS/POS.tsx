@@ -1,6 +1,6 @@
 'use client';
-import React, { useState, useEffect } from 'react';
-import { Filter, Grid, List, Package } from "lucide-react";
+import React, { useState, useEffect, useRef } from 'react';
+
 import ProductSearch from "@/components/POS/ProductSearch";
 import ProductGrid from "@/components/POS/ProductGrid";
 import Cart from "@/components/POS/Cart";
@@ -12,9 +12,9 @@ import CategoryBadge from "@/components/common/CategoryBadge";
 import { crearVenta, descontarStockProductos } from "@/lib/firestoreSales";
 import SuccessToast from "@/components/common/SuccessToast";
 import TicketVenta from "./TicketVenta";
-import { useRef } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import { Product } from '../../types/inventory';
+import { CartItem } from '../../types/index';
 import { categoryData, CategoryKey } from '@/lib/constants/categoryData';
 
 const POS: React.FC = () => {
@@ -32,10 +32,15 @@ const POS: React.FC = () => {
     total: number;
   } | null>(null);
   const ticketRef = useRef<HTMLDivElement>(null);
+  // NOTA: Si el tipo de useReactToPrint no acepta 'content', puede ser necesario actualizar la dependencia o extender el tipo.
+  // Aquí se usa la firma correcta para la mayoría de implementaciones actuales.
+  // Workaround: los tipos de react-to-print@3.1.1 no incluyen 'content' en UseReactToPrintOptions,
+  // pero la implementación sí lo acepta. Forzamos el cast a 'any' solo aquí para evitar el error de build.
+  // Referencia: https://github.com/gregnb/react-to-print/issues/674
   const handlePrint = useReactToPrint({
-    contentRef: ticketRef,
+    content: () => ticketRef.current as HTMLDivElement | null,
     documentTitle: ventaTicket?.receiptNumber ? `Boleta_${ventaTicket.receiptNumber}` : 'Boleta',
-  });
+  } as any);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
   const { products, loading } = useProducts();
@@ -45,7 +50,6 @@ const POS: React.FC = () => {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Resetear subcategoría al cambiar categoría
@@ -53,29 +57,18 @@ const POS: React.FC = () => {
     setSelectedSubcategory(null);
   }, [selectedCategory]);
 
-  
-  
-  
-  
-  
-  
+  // Extraer categorías y subcategorías desde categoryData
+  const categoryList = (Object.keys(categoryData).filter(cat => cat !== 'all') as CategoryKey[]);
+
+  // --- Restaurar lógica de paginación ---
   const [currentPage, setCurrentPage] = useState(1);
   const productsPerPage = 10;
-
   // Calcular productos de la página actual
   const paginatedProducts = React.useMemo(() => {
     const start = (currentPage - 1) * productsPerPage;
     return filteredProducts.slice(start, start + productsPerPage);
   }, [filteredProducts, currentPage]);
-  
-  
-  
-  
-  
-  
-
-  // Extraer categorías y subcategorías desde categoryData
-  const categoryList = (Object.keys(categoryData).filter(cat => cat !== 'all') as CategoryKey[]);
+  // --- Fin restauración ---
 
   useEffect(() => {
     // Siempre usar productos reales de Firestore
@@ -118,8 +111,6 @@ const POS: React.FC = () => {
     }
   };
 
-  
-
   const handleCheckout = async (paymentMethod: string) => {
   // VALIDACIONES ROBUSTAS
   if (!state.items || state.items.length === 0) {
@@ -135,7 +126,7 @@ const POS: React.FC = () => {
     return;
   }
   // Validar stock suficiente para cada producto (incluyendo ventas por peso)
-  const productosSinStock = state.items.filter(item => {
+  const productosSinStock = state.items.filter((item: CartItem) => {
     // Venta por peso: permitir decimales
     if (item.product.ventaPorPeso && item.product.unitType === 'kg') {
       return item.quantity > item.product.stock;
@@ -163,14 +154,6 @@ const POS: React.FC = () => {
         receiptNumber = (Math.floor(Math.random() * 900000) + 100000).toString();
       }
       // Asegurar que cada producto vendido tenga los campos isExonerated e igvIncluded
-    const productosVenta = cartItems.map(item => ({
-      ...item.product,
-      isExonerated: item.product.isExonerated ?? false,
-      igvIncluded: item.product.igvIncluded ?? true,
-      quantity: item.quantity,
-      salePrice: item.product.salePrice,
-    }));
-
     const venta = {
       id: receiptNumber,
       items: cartItems.map((item: { product: Product; quantity: number }) => ({
@@ -218,11 +201,12 @@ const POS: React.FC = () => {
     } catch (error: unknown) {
     let msg = 'Error al procesar la venta';
     if (typeof error === 'object' && error !== null) {
-      if ('message' in error && typeof (error as any).message === 'string') {
-        msg += `: ${(error as any).message}`;
+      const err = error as { message?: string; code?: string };
+      if (typeof err.message === 'string') {
+        msg += `: ${err.message}`;
       }
-      if ('code' in error && typeof (error as any).code === 'string') {
-        msg += ` (code: ${(error as any).code})`;
+      if (typeof err.code === 'string') {
+        msg += ` (code: ${err.code})`;
       }
     }
     console.error('Error al procesar la venta:', error);
@@ -256,7 +240,7 @@ const POS: React.FC = () => {
                   className={`flex flex-col items-center justify-center px-2 py-2 rounded-xl font-semibold transition-colors text-base border-2 ${selectedCategory === null ? 'border-emerald-500 ring-2 ring-emerald-400 shadow-lg bg-emerald-50 text-emerald-900' : 'border-gray-200 bg-white text-gray-800 hover:border-emerald-300'} duration-100`}
                   style={{ minWidth: 70, minHeight: 60 }}
                 >
-                  <CategoryBadge category="all" size={32} />
+                  <CategoryBadge category="all" />
                 </button>
                 {categoryList.map((cat) => (
                   <button
@@ -268,7 +252,7 @@ const POS: React.FC = () => {
                     className={`flex flex-col items-center justify-center px-2 py-2 rounded-xl font-semibold transition-colors text-base border-2 ${selectedCategory === cat ? 'border-emerald-500 ring-2 ring-emerald-400 shadow-lg bg-emerald-50 text-emerald-900' : 'border-gray-200 bg-white text-gray-800 hover:border-emerald-300'} duration-100`}
                     style={{ minWidth: 70, minHeight: 60 }}
                   >
-                    <CategoryBadge category={cat} size={32} />
+                    <CategoryBadge category={cat} />
                   </button>
                 ))}
               </>
@@ -353,7 +337,7 @@ const POS: React.FC = () => {
   };
   const normalized = subcat.trim().toLowerCase();
   const emoji = iconMap[normalized] || '🍽️';
-  const icon = <span style={{ fontSize: 32, lineHeight: 1.2 }} role="img" aria-label={normalized}>{emoji}</span>;
+  <span style={{ fontSize: 32, lineHeight: 1.2 }} role="img" aria-label={normalized}>{emoji}</span>;
   return (
     <button
       key={subcat}

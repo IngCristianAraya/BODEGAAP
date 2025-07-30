@@ -44,7 +44,7 @@ const initialState: CartState = {
   tax: 0
 };
 
-const TAX_RATE = 0.18; // 18% IGV
+ // 18% IGV
 
 const cartReducer = (state: CartState, action: CartAction): CartState => {
   switch (action.type) {

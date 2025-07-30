@@ -2,11 +2,11 @@ import {
   Package,
   Apple,
   CupSoda,
-  Cookie,
+  
   Candy,
   IceCream,
   SprayCan,
-  Bath,
+  
   Trash2,
   Snowflake,
 } from 'lucide-react';

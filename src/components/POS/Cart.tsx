@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Trash2, Plus, Minus, ShoppingCart, CreditCard } from 'lucide-react';
 import { useCart } from '../../contexts/CartContext';
-import DesgloseIGV from './DesgloseIGV';
+
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface CartProps {

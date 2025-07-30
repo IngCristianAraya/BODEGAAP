@@ -4,14 +4,12 @@ import { categoryData } from '@/lib/constants/categoryData';
 interface CategoryBadgeProps {
   category: string;
   className?: string;
-  size?: number;
   showAbbr?: boolean;
 }
 
 export const CategoryBadge: React.FC<CategoryBadgeProps> = ({
   category,
   className = '',
-  size = 18,
   showAbbr = false,
 }) => {
   const data = categoryData[category as keyof typeof categoryData] || categoryData['all'];

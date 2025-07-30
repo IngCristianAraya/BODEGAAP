@@ -20,7 +20,7 @@ const InventoryHistoryModal: React.FC<Props> = ({ product, onClose }) => {
       try {
         const movs = await obtenerMovimientosProducto(product.id);
         setMovements(movs.sort((a, b) => (b.date > a.date ? 1 : -1)));
-      } catch (err) {
+      } catch {
         setMovements([]);
       } finally {
         setLoading(false);

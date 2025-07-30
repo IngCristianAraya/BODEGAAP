@@ -17,10 +17,6 @@ const DesgloseIGV: React.FC<Props> = ({ items }) => {
     const { base } = descomponerIGV(item.product.salePrice ?? 0);
     return sum + (base * item.quantity);
   }, 0);
-  const igvTotal = items.filter(item => !item.product.isExonerated).reduce((sum, item) => {
-    const { igv } = descomponerIGV(item.product.salePrice ?? 0);
-    return sum + (igv * item.quantity);
-  }, 0);
 
   return (
     <>

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { obtenerTodosMovimientosInventario } from '../../lib/firestoreInventory';
-import { Product } from '../../types/inventory';
-import { useAuth } from '../../contexts/AuthContext';
+
+
 
 interface InventoryMovement {
   id: string;
@@ -29,7 +29,6 @@ const InventoryMovementsReport: React.FC = () => {
   const [movements, setMovements] = useState<InventoryMovement[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const { user } = useAuth();
 
   useEffect(() => {
     async function fetchMovements() {

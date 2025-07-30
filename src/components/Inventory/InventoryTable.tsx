@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 import { Product } from '../../types/inventory';
 import { Pencil, Trash2, Wrench } from 'lucide-react';
 
@@ -94,7 +95,7 @@ const InventoryTable: React.FC<InventoryTableProps> = ({ products, onEdit, onDel
               <tr key={product.id} className="hover:bg-gray-50 border-b last:border-b-0">
                 <td className="px-4 py-2 whitespace-nowrap">
                   {product.imageUrl ? (
-                    <img
+                    <Image 
                       src={product.imageUrl}
                       alt={product.name}
                       className="w-10 h-10 object-cover rounded border border-gray-200 bg-white"

@@ -4,8 +4,8 @@ import autoTable from 'jspdf-autotable';
 import TicketVenta from '../POS/TicketVenta';
 import ReportsMenu from './ReportsMenu';
 import InventoryMovementsReport from './InventoryMovementsReport';
-import { obtenerClientes } from '../../lib/firestoreCustomers';
-import { obtenerProveedores } from '../../lib/firestoreSuppliers';
+
+
 import { obtenerVentas } from '../../lib/firestoreSales';
 import { obtenerProductos } from '../../lib/firestoreProducts';
 import { useAuth } from '../../contexts/AuthContext';
@@ -13,8 +13,11 @@ import { Sale, Product, SaleItem } from '../../types/index';
 
 
 const Reports: React.FC = () => {
+  
+
+
   const [showTicketModal, setShowTicketModal] = React.useState(false);
-  const [ventaSeleccionada, setVentaSeleccionada] = React.useState<Sale | null>(null);
+  const [ventaSeleccionada, setVentaSeleccionada] = useState<Sale | null>(null);
   const ticketRef = useRef<HTMLDivElement>(null);
   const [reportType, setReportType] = useState<'ventas' | 'inventario' | 'ganancias' | 'movimientos'>('ventas');
   const [ventas, setVentas] = useState<Sale[]>([]);
@@ -26,13 +29,13 @@ const Reports: React.FC = () => {
   const VENTAS_POR_PAGINA = 10;
   const INVENTARIO_POR_PAGINA = 10;
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+
   const { user } = useAuth();
 
   // Carga ventas y productos para reportes de ventas y ganancias
   const cargarVentasYProductos = async (): Promise<void> => {
     setLoading(true);
-    setError(null);
+    
     try {
       const [ventasData, productosData] = await Promise.all([
         obtenerVentas(),
@@ -40,8 +43,6 @@ const Reports: React.FC = () => {
       ]);
       setVentas(ventasData);
       setProductos(productosData);
-    } catch (_err) {
-      setError('Error al cargar ventas/productos');
     } finally {
       setLoading(false);
     }
@@ -50,12 +51,9 @@ const Reports: React.FC = () => {
   // Carga productos para reporte de inventario
   const cargarProductos = async (): Promise<void> => {
     setLoading(true);
-    setError(null);
     try {
       const productosData = await obtenerProductos();
       setProductos(productosData);
-    } catch (_err) {
-      setError('Error al cargar inventario');
     } finally {
       setLoading(false);
     }
@@ -66,7 +64,7 @@ const Reports: React.FC = () => {
   }, [user]);
 
   useEffect(() => {
-    setError(null);
+    
     setLoading(true);
     if (reportType === 'ventas' || reportType === 'ganancias') {
       cargarVentasYProductos();
@@ -132,7 +130,7 @@ const Reports: React.FC = () => {
 
   const ventasHeaders: { key: string, label: string, format?: (val: unknown, row: Record<string, unknown>) => string }[] = [
   { key: 'receiptNumber', label: 'N° Boleta' },
-  { key: 'createdAt', label: 'Fecha', format: (val: unknown) => {
+  { key: 'createdAt', label: 'Fecha', format: (val: unknown, row: Record<string, unknown>) => {
     if (!val) return '-';
     if (typeof val === 'object' && val !== null && 'seconds' in val) {
       const d = new Date((val as { seconds: number }).seconds * 1000);
@@ -143,16 +141,16 @@ const Reports: React.FC = () => {
   } },
   { key: 'cashierName', label: 'Cajero' },
   { key: 'customerName', label: 'Cliente' },
-  { key: 'total', label: 'Total', format: (val: unknown) => `S/ ${Number(val).toFixed(2)}` },
+  { key: 'total', label: 'Total', format: (val: unknown) => `S/ ${typeof val === 'number' ? val.toFixed(2) : '0.00'}` },
   { key: 'paymentMethod', label: 'Método de Pago', format: (val: unknown) => val === 'cash' ? 'Efectivo' : String(val) },
   { key: 'items', label: 'Detalle', format: (_: unknown, row: Record<string, unknown>) => {
-    const arr = Array.isArray((row as Sale).items) && (row as Sale).items.length > 0 ? (row as Sale).items : [];
+    const arr = Array.isArray(row.items) && row.items.length > 0 ? row.items : [];
     return arr.map((i: SaleItem) => {
       const nombre = i.productName;
       const cantidad = i.quantity;
       const precio = i.unitPrice;
-      const subtotal = typeof precio === 'number' ? (precio * cantidad) : '-';
-      return `${nombre} x${cantidad} S/.${subtotal}`;
+      const subtotal = typeof precio === 'number' && typeof cantidad === 'number' ? precio * cantidad : 0;
+      return `${nombre} x${cantidad} S/ ${subtotal.toFixed(2)}`;
     }).join(', ');
   } },
 ];
@@ -163,8 +161,8 @@ const Reports: React.FC = () => {
     { key: 'category', label: 'Categoría' },
     { key: 'unit', label: 'Unidad' },
     { key: 'stock', label: 'Stock' },
-    { key: 'salePrice', label: 'Precio Venta', format: (val: unknown) => `S/ ${Number(val).toFixed(2)}` },
-    { key: 'averageCost', label: 'Costo Promedio', format: (val: unknown) => `S/ ${Number(val).toFixed(2)}` },
+    { key: 'salePrice', label: 'Precio Venta', format: (val: unknown, row: Record<string, unknown>) => `S/ ${Number(val).toFixed(2)}` },
+    { key: 'averageCost', label: 'Costo Promedio', format: (val: unknown, row: Record<string, unknown>) => `S/ ${Number(val).toFixed(2)}` },
     { key: 'supplier', label: 'Proveedor' },
   ];
 
@@ -177,14 +175,14 @@ const Reports: React.FC = () => {
           if (!fechaInicio && !fechaFin) return true;
           let fecha = null;
           if (v.createdAt instanceof Date) fecha = v.createdAt;
-          else if (v.createdAt && typeof v.createdAt === 'object' && v.createdAt !== null && 'seconds' in v.createdAt && typeof (v.createdAt as any).seconds === 'number') fecha = new Date((v.createdAt as any).seconds * 1000);
+          else if (v.createdAt && typeof v.createdAt === 'object' && v.createdAt !== null && 'seconds' in v.createdAt && typeof (v.createdAt as { seconds: number }).seconds === 'number') fecha = new Date((v.createdAt as { seconds: number }).seconds * 1000);
           else if (typeof v.createdAt === 'string') fecha = new Date(v.createdAt);
           if (!fecha || isNaN(fecha.getTime())) return false;
           if (fechaInicio && fecha < new Date(fechaInicio + 'T00:00:00')) return false;
           if (fechaFin && fecha > new Date(fechaFin + 'T23:59:59')) return false;
           return true;
         })
-        .sort((a, b) => {
+        .sort((a: Sale, b: Sale) => {
           const nA = Number(a.receiptNumber);
           const nB = Number(b.receiptNumber);
           if (!isNaN(nA) && !isNaN(nB)) return nB - nA;
@@ -221,15 +219,14 @@ const Reports: React.FC = () => {
           if (!fechaInicio && !fechaFin) return true;
           let fecha = null;
           if (v.createdAt instanceof Date) fecha = v.createdAt;
-          else if (v.createdAt && typeof v.createdAt === 'object' && v.createdAt !== null && 'seconds' in v.createdAt && typeof (v.createdAt as any).seconds === 'number') fecha = new Date((v.createdAt as any).seconds * 1000);
+          else if (v.createdAt && typeof v.createdAt === 'object' && v.createdAt !== null && 'seconds' in v.createdAt && typeof (v.createdAt as { seconds: number }).seconds === 'number') fecha = new Date((v.createdAt as { seconds: number }).seconds * 1000);
           else if (typeof v.createdAt === 'string') fecha = new Date(v.createdAt);
           if (!fecha || isNaN(fecha.getTime())) return false;
           if (fechaInicio && fecha < new Date(fechaInicio + 'T00:00:00')) return false;
           if (fechaFin && fecha > new Date(fechaFin + 'T23:59:59')) return false;
           return true;
         })
-        .sort((a, b) => {
-          // Ordenar por número de boleta descendente (mayor primero)
+        .sort((a: Sale, b: Sale) => {
           const nA = Number(a.receiptNumber);
           const nB = Number(b.receiptNumber);
           if (!isNaN(nA) && !isNaN(nB)) return nB - nA;
@@ -280,7 +277,7 @@ const Reports: React.FC = () => {
         )}
       </div>
       <div className="flex flex-wrap gap-4 items-end mb-4">
-        <ReportsMenu onSelect={t => setReportType(t as any)} />
+        <ReportsMenu onSelect={t => setReportType(t as 'ventas' | 'inventario' | 'ganancias' | 'movimientos')} />
       </div>
       {/* MODAL DE TICKET - Render condicional al final para evitar superposición */}
       {showTicketModal && ventaSeleccionada && (
@@ -324,17 +321,17 @@ const Reports: React.FC = () => {
                 </button>
               </div>
               <button
-  className="w-full mt-2 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
-  onClick={() => setShowTicketModal(false)}
->
-  Cancelar
-</button>
+                className="w-full mt-2 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
+                onClick={() => setShowTicketModal(false)}
+              >
+                Cancelar
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {(reportType === 'ventas' || reportType === 'ganancias') && (
+      {(reportType === 'ventas' || reportType === 'inventario') && (
         <div className="flex gap-2 items-end mb-4">
           <div>
             <label className="block text-xs text-gray-500 mb-1">Desde</label>
@@ -357,7 +354,7 @@ const Reports: React.FC = () => {
                 <th className="py-3 px-4 text-left font-semibold">Detalle</th>
                 <th className="py-3 px-4 text-right font-semibold">Total</th>
                 <th className="py-3 px-4 text-center font-semibold">Método Pago</th>
-        <th className="py-3 px-4 text-center font-semibold">Acción</th>
+                <th className="py-3 px-4 text-center font-semibold">Acción</th>
               </tr>
             </thead>
             <tbody>
@@ -366,15 +363,14 @@ const Reports: React.FC = () => {
                   if (!fechaInicio && !fechaFin) return true;
                   let fecha = null;
                   if (v.createdAt instanceof Date) fecha = v.createdAt;
-                  else if (v.createdAt && typeof v.createdAt === 'object' && v.createdAt !== null && 'seconds' in v.createdAt && typeof (v.createdAt as any).seconds === 'number') fecha = new Date((v.createdAt as any).seconds * 1000);
+                  else if (v.createdAt && typeof v.createdAt === 'object' && v.createdAt !== null && 'seconds' in v.createdAt && typeof (v.createdAt as { seconds: number }).seconds === 'number') fecha = new Date((v.createdAt as { seconds: number }).seconds * 1000);
                   else if (typeof v.createdAt === 'string') fecha = new Date(v.createdAt);
                   if (!fecha || isNaN(fecha.getTime())) return false;
                   if (fechaInicio && fecha < new Date(fechaInicio + 'T00:00:00')) return false;
                   if (fechaFin && fecha > new Date(fechaFin + 'T23:59:59')) return false;
                   return true;
                 })
-                .sort((a, b) => {
-                  // Ordenar receiptNumber numérico descendente
+                .sort((a: Sale, b: Sale) => {
                   const nA = Number(a.receiptNumber);
                   const nB = Number(b.receiptNumber);
                   if (!isNaN(nA) && !isNaN(nB)) return nB - nA;
@@ -387,18 +383,18 @@ const Reports: React.FC = () => {
                     <tr key={v.id || idx} className="border-b last:border-b-0 hover:bg-gray-50 transition-colors">
                       <td className="py-2 px-4 text-center">{v.receiptNumber || '-'}</td>
                       <td className="py-2 px-4 text-center">{v.createdAt
-  ? (typeof v.createdAt === 'object' && v.createdAt !== null && 'seconds' in v.createdAt && typeof (v.createdAt as { seconds?: unknown }).seconds === 'number'
-      ? new Date((v.createdAt as { seconds: number }).seconds * 1000).toLocaleDateString()
-      : new Date(v.createdAt as string | number | Date).toLocaleDateString())
-  : '-'}</td>
+                        ? (typeof v.createdAt === 'object' && v.createdAt !== null && 'seconds' in v.createdAt && typeof (v.createdAt as { seconds: number }).seconds === 'number'
+                            ? new Date((v.createdAt as { seconds: number }).seconds * 1000).toLocaleDateString()
+                            : new Date(v.createdAt as string | number | Date).toLocaleDateString())
+                        : '-'}</td>
                       <td className="py-2 px-4 text-center">{v.cashierName || '-'}</td>
                       <td className="py-2 px-4">
                         <ul className="list-disc ml-4">
-                          {arr.map((i: any, idx2: number) => {
-                            const nombre = i.name || i.productName || '';
+                          {arr.map((i: SaleItem, idx2: number) => {
+                            const nombre = i.productName || '';
                             const cantidad = i.quantity || 1;
-                            const precio = typeof i.salePrice === 'number' ? i.salePrice : (typeof i.price === 'number' ? i.price : null);
-                            const subtotal = precio !== null ? (precio * cantidad) : null;
+                            const precio = typeof i.unitPrice === 'number' ? i.unitPrice : null;
+                            const subtotal = typeof i.total === 'number' ? i.total : (precio !== null ? precio * cantidad : null);
                             return (
                               <li key={idx2}>
                                 {nombre}{cantidad > 1 ? ` x${cantidad}` : ''}
@@ -430,29 +426,28 @@ const Reports: React.FC = () => {
               <tr className="bg-gray-100 font-semibold">
                 <td colSpan={4} className="py-2 px-4 text-right">Total ventas:</td>
                 <td className="py-2 px-4 text-right">S/ {
-  ventas
-    .filter(v => {
-      if (!fechaInicio && !fechaFin) return true;
-      let fecha = null;
-      if (v.createdAt instanceof Date) fecha = v.createdAt;
-      else if (v.createdAt && typeof v.createdAt === 'object' && v.createdAt !== null && 'seconds' in v.createdAt && typeof (v.createdAt as any).seconds === 'number') fecha = new Date((v.createdAt as any).seconds * 1000);
-      else if (typeof v.createdAt === 'string') fecha = new Date(v.createdAt);
-      if (!fecha || isNaN(fecha.getTime())) return false;
-      if (fechaInicio && fecha < new Date(fechaInicio + 'T00:00:00')) return false;
-      if (fechaFin && fecha > new Date(fechaFin + 'T23:59:59')) return false;
-      return true;
-    })
-    .sort((a, b) => {
-      // Ordenar por número de boleta descendente (mayor primero)
-      const nA = Number(a.receiptNumber);
-      const nB = Number(b.receiptNumber);
-      if (!isNaN(nA) && !isNaN(nB)) return nB - nA;
-      return String(b.receiptNumber).localeCompare(String(a.receiptNumber));
-    })
-    .slice((ventasPage - 1) * VENTAS_POR_PAGINA, ventasPage * VENTAS_POR_PAGINA)
-    .reduce((acc,v) => acc + (v.total || 0), 0)
-    .toFixed(2)
-}</td>
+                  ventas
+                    .filter(v => {
+                      if (!fechaInicio && !fechaFin) return true;
+                      let fecha = null;
+                      if (v.createdAt instanceof Date) fecha = v.createdAt;
+                      else if (v.createdAt && typeof v.createdAt === 'object' && v.createdAt !== null && 'seconds' in v.createdAt && typeof (v.createdAt as { seconds: number }).seconds === 'number') fecha = new Date((v.createdAt as { seconds: number }).seconds * 1000);
+                      else if (typeof v.createdAt === 'string') fecha = new Date(v.createdAt);
+                      if (!fecha || isNaN(fecha.getTime())) return false;
+                      if (fechaInicio && fecha < new Date(fechaInicio + 'T00:00:00')) return false;
+                      if (fechaFin && fecha > new Date(fechaFin + 'T23:59:59')) return false;
+                      return true;
+                    })
+                    .sort((a: Sale, b: Sale) => {
+                      const nA = Number(a.receiptNumber);
+                      const nB = Number(b.receiptNumber);
+                      if (!isNaN(nA) && !isNaN(nB)) return nB - nA;
+                      return String(b.receiptNumber).localeCompare(String(a.receiptNumber));
+                    })
+                    .slice((ventasPage - 1) * VENTAS_POR_PAGINA, ventasPage * VENTAS_POR_PAGINA)
+                    .reduce((acc: number, v: Sale) => acc + (v.total || 0), 0)
+                    .toFixed(2)
+                }</td>
                 <td></td>
               </tr>
             </tfoot>
@@ -490,7 +485,7 @@ const Reports: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {productos.slice((inventarioPage-1)*INVENTARIO_POR_PAGINA, inventarioPage*INVENTARIO_POR_PAGINA).map((p, i) => (
+              {productos.slice((inventarioPage-1)*INVENTARIO_POR_PAGINA, inventarioPage*INVENTARIO_POR_PAGINA).map((p: Product, i: number) => (
                 <tr key={i} className={`border-t transition-colors ${i%2===0 ? 'bg-white' : 'bg-gray-50'} hover:bg-emerald-100/40`}>
                   <td className="py-2 px-4 font-mono text-xs text-gray-700">{p.code}</td>
                   <td className="py-2 px-4 font-medium text-gray-900">{p.name}</td>
@@ -508,9 +503,9 @@ const Reports: React.FC = () => {
             <tfoot>
               <tr className="bg-gray-100 font-semibold">
                 <td colSpan={2} className="py-2 px-4 text-right">Stock total:</td>
-                <td className="py-2 px-4 text-center">{productos.slice((inventarioPage-1)*INVENTARIO_POR_PAGINA, inventarioPage*INVENTARIO_POR_PAGINA).reduce((acc,p) => acc + (p.stock || 0), 0)}</td>
+                <td className="py-2 px-4 text-center">{productos.slice((inventarioPage-1)*INVENTARIO_POR_PAGINA, inventarioPage*INVENTARIO_POR_PAGINA).reduce((acc: number, p: Product) => acc + (p.stock || 0), 0)}</td>
                 <td className="py-2 px-4 text-right">Valor total stock:</td>
-                <td className="py-2 px-4 text-right">S/ {productos.slice((inventarioPage-1)*INVENTARIO_POR_PAGINA, inventarioPage*INVENTARIO_POR_PAGINA).reduce((acc,p) => acc + ((p.stock || 0) * (p.averageCost || 0)), 0).toFixed(2)}</td>
+                <td className="py-2 px-4 text-right">S/ {productos.slice((inventarioPage-1)*INVENTARIO_POR_PAGINA, inventarioPage*INVENTARIO_POR_PAGINA).reduce((acc: number, p: Product) => acc + ((p.stock || 0) * (p.averageCost || 0)), 0).toFixed(2)}</td>
                 <td colSpan={2}></td>
               </tr>
             </tfoot>
@@ -554,7 +549,7 @@ const Reports: React.FC = () => {
                   if (!fechaInicio && !fechaFin) return true;
                   let fecha = null;
                   if (v.createdAt instanceof Date) fecha = v.createdAt;
-                  else if (v.createdAt && typeof v.createdAt === 'object' && v.createdAt !== null && 'seconds' in v.createdAt && typeof (v.createdAt as any).seconds === 'number') fecha = new Date((v.createdAt as any).seconds * 1000);
+                  else if (v.createdAt && typeof v.createdAt === 'object' && v.createdAt !== null && 'seconds' in v.createdAt && typeof (v.createdAt as { seconds: number }).seconds === 'number') fecha = new Date((v.createdAt as { seconds: number }).seconds * 1000);
                   else if (typeof v.createdAt === 'string') fecha = new Date(v.createdAt);
                   if (!fecha || isNaN(fecha.getTime())) return false;
                   if (fechaInicio && fecha < new Date(fechaInicio + 'T00:00:00')) return false;
@@ -563,7 +558,7 @@ const Reports: React.FC = () => {
                 }).forEach(v => {
                   let fecha = null;
                   if (v.createdAt instanceof Date) fecha = v.createdAt;
-                  else if (v.createdAt && typeof v.createdAt === 'object' && v.createdAt !== null && 'seconds' in v.createdAt && typeof (v.createdAt as any).seconds === 'number') fecha = new Date((v.createdAt as any).seconds * 1000);
+                  else if (v.createdAt && typeof v.createdAt === 'object' && v.createdAt !== null && 'seconds' in v.createdAt && typeof (v.createdAt as { seconds: number }).seconds === 'number') fecha = new Date((v.createdAt as { seconds: number }).seconds * 1000);
                   else if (typeof v.createdAt === 'string') fecha = new Date(v.createdAt);
                   if (!fecha || isNaN(fecha.getTime())) return;
                   // Agrupa por fecha exacta (yyyy-mm-dd, ignorando hora)
@@ -577,10 +572,10 @@ const Reports: React.FC = () => {
                   // Calcular costo y ganancia por venta
                   let costoVenta = 0;
                   let gananciaVenta = 0;
-                  (Array.isArray(v.items) && v.items.length > 0 ? v.items : []).forEach((item: any) => {
+                  (Array.isArray(v.items) && v.items.length > 0 ? v.items : []).forEach((item: SaleItem) => {
                     const cantidad = item.quantity || 1;
-                    const precio = typeof item.salePrice === 'number' ? item.salePrice : (typeof item.price === 'number' ? item.price : 0);
-                    const producto = productos.find((p: any) => p.id === item.productId);
+                    const precio = typeof item.unitPrice === 'number' ? item.unitPrice : 0;
+                    const producto = productos.find((p: Product) => p.id === item.productId);
                     const costoUnit = producto?.costPrice ?? producto?.averageCost ?? 0;
                     const costo = cantidad * costoUnit;
                     const subtotal = cantidad * precio;
@@ -620,19 +615,23 @@ const Reports: React.FC = () => {
 };
 
 // Adapta la venta seleccionada a la estructura esperada por TicketVenta
-function mapVentaToTicket(venta: any) {
+function mapVentaToTicket(venta: Sale) {
   // Asegura compatibilidad de campos y formatos
-  const items = (Array.isArray(venta.items) ? venta.items : []).map((i: Record<string, unknown>) => ({
-    productName: i.name || i.productName || '',
+  const items = (Array.isArray(venta.items) ? venta.items : []).map((i: SaleItem) => ({
+    productName: i.productName || '',
     quantity: i.quantity || 1,
-    unitPrice: typeof i.salePrice === 'number' ? i.salePrice : (typeof i.price === 'number' ? i.price : 0),
+    unitPrice: typeof i.unitPrice === 'number' ? i.unitPrice : 0,
   }));
   return {
     receiptNumber: String(venta.receiptNumber ?? '-'),
     cashierName: String(venta.cashierName ?? '-'),
     customerName: String(venta.customerName ?? ''),
     paymentMethod: String(venta.paymentMethod === 'cash' ? 'Efectivo' : (venta.paymentMethod ?? '-')),
-    date: venta.createdAt ? (typeof venta.createdAt === 'object' && 'seconds' in venta.createdAt ? new Date(venta.createdAt.seconds * 1000).toLocaleDateString() : new Date(venta.createdAt).toLocaleDateString()) : '-',
+    date: venta.createdAt
+      ? (typeof venta.createdAt === 'object' && venta.createdAt !== null && 'seconds' in venta.createdAt && typeof (venta.createdAt as { seconds?: unknown }).seconds === 'number'
+          ? new Date((venta.createdAt as { seconds: number }).seconds * 1000).toLocaleDateString()
+          : new Date(venta.createdAt as string | Date).toLocaleDateString())
+      : '-',
     items,
     subtotal: typeof venta.subtotal === 'number' ? venta.subtotal : (typeof venta.total === 'number' && typeof venta.igv === 'number' ? venta.total - (venta.igv || 0) + (venta.discount || 0) : 0),
     discount: typeof venta.discount === 'number' ? venta.discount : 0,

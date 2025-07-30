@@ -28,28 +28,20 @@ const steps = [
 const HowToUseSystem: React.FC = () => {
   const ref = useRef<HTMLDivElement>(null);
 
-  const handleDownloadImage = async () => {
-    if (!ref.current) return;
-    const canvas = await html2canvas(ref.current);
-    const link = document.createElement('a');
-    link.download = 'como-usar-bodegapp.png';
-    link.href = canvas.toDataURL();
-    link.click();
-  };
-
+  // Descargar tutorial como PDF
   const handleDownloadPDF = async () => {
     if (!ref.current) return;
     const canvas = await html2canvas(ref.current);
     const imgData = canvas.toDataURL('image/png');
     const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: 'a4' });
     const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
     const imgProps = pdf.getImageProperties(imgData);
     const pdfWidth = pageWidth * 0.95;
     const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
     pdf.addImage(imgData, 'PNG', (pageWidth - pdfWidth) / 2, 30, pdfWidth, pdfHeight);
     pdf.save('como-usar-bodegapp.pdf');
   };
+
 
   return (
     <div className="mt-8">
@@ -72,7 +64,7 @@ const HowToUseSystem: React.FC = () => {
       </div>
       <div className="flex justify-center mt-6">
         <button
-          onClick={() => alert('Próximamente: tutorial en PDF o video')}
+          onClick={handleDownloadPDF}
           className="bg-emerald-600 text-white px-6 py-2 rounded hover:bg-emerald-700 transition font-semibold shadow"
         >
           Descargar tutorial

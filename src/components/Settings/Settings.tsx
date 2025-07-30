@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { saveStoreInfo, getStoreInfo, StoreInfo as FirestoreStoreInfo } from '../../lib/firestoreSettings';
+import { saveStoreInfo, getStoreInfo } from '../../lib/firestoreSettings';
 import { useToast } from '../../contexts/ToastContext';
 import HowToUseSystem from './HowToUseSystem';
 import ExportDataButton from './ExportDataButton';
@@ -38,7 +38,7 @@ const Settings: React.FC = () => {
             setLoading(false);
             return;
           }
-        } catch (e) {
+        } catch {
           // Si falla Firestore, sigue con localStorage
         }
       }
@@ -50,7 +50,7 @@ const Settings: React.FC = () => {
       setLoading(false);
     };
     fetchData();
-    // eslint-disable-next-line
+    
   }, [user]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -66,7 +66,8 @@ const Settings: React.FC = () => {
       try {
         await saveStoreInfo(user.uid, storeInfo);
         showToast('Datos guardados en la nube', 'success');
-      } catch (err) {
+      } catch {
+
         showToast('Error al guardar en la nube', 'error');
         ok = false;
       }

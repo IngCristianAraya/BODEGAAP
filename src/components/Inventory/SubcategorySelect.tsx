@@ -11,8 +11,8 @@ import { categoryData } from '@/lib/constants/categoryData';
 // Extrae las subcategorías directamente de categoryData para mantener sincronía
 const subcategoriasPorCategoria: Record<string, string[]> = Object.fromEntries(
   Object.entries(categoryData)
-    .filter(([cat, info]) => info.subcategories)
-    .map(([cat, info]) => [cat, info.subcategories!])
+    .filter(([_, info]) => info.subcategories && info.subcategories.length > 0)
+    .map(([category, info]) => [category, info.subcategories!])
 );
 
 

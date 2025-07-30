@@ -13,7 +13,8 @@ export async function crearProducto(producto: Omit<Product, 'id' | 'stock' | 'av
   try {
     const { auth } = await import('./firebase');
     console.log('DEBUG crearProducto (inventory) - usuario:', auth.currentUser);
-  } catch (e) {
+  } catch {
+
     console.warn('No se pudo importar auth para log de usuario');
   }
   console.log('DEBUG crearProducto (inventory) - producto:', {
@@ -125,21 +126,31 @@ export async function obtenerTodosMovimientosInventario(): Promise<InventoryMove
   const snapshot = await getDocs(collection(db, MOVEMENTS_COLLECTION));
   // Obtener productos para enriquecer el reporte
   const productosSnap = await getDocs(collection(db, PRODUCTS_COLLECTION));
-  const productos = productosSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  const productos: Product[] = productosSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
   // Agrupar movimientos por producto
-  const movimientosPorProducto: Record<string, any[]> = {};
+  type RawMovement = {
+    id: string;
+    productId: string;
+    quantity: number;
+    costPrice: number;
+    date: string | { toDate: () => Date } | Date;
+    type?: string;
+    cashierEmail?: string;
+    motivo?: string;
+  };
+  const movimientosPorProducto: Record<string, RawMovement[]> = {};
   snapshot.docs.forEach(doc => {
-    const mov = { id: doc.id, ...doc.data() } as any;
+    const mov = { id: doc.id, ...doc.data() } as RawMovement;
     if (!movimientosPorProducto[mov.productId]) movimientosPorProducto[mov.productId] = [];
     movimientosPorProducto[mov.productId].push(mov);
   });
   // Para cada producto, ordenar movimientos por fecha ASC y calcular stock acumulado
   const movimientosEnriquecidos: InventoryMovement[] = [];
-  Object.entries(movimientosPorProducto).forEach(([productId, movimientos]) => {
+  Object.entries(movimientosPorProducto).forEach(([, movimientos]) => {
     // Ordenar por fecha ASC
     // Función robusta para obtener el valor numérico de la fecha
-    const getDateValue = (date: any) => {
-      if (date && typeof date.toDate === 'function') return date.toDate().getTime();
+    const getDateValue = (date: string | { toDate: () => Date } | Date) => {
+      if (typeof date === 'object' && date !== null && 'toDate' in date && typeof (date as any).toDate === 'function') return (date as { toDate: () => Date }).toDate().getTime();
       if (typeof date === 'string') return new Date(date).getTime();
       if (date instanceof Date) return date.getTime();
       return 0;
@@ -155,25 +166,25 @@ export async function obtenerTodosMovimientosInventario(): Promise<InventoryMove
       const initialStock = stock;
       stock += mov.quantity;
       const finalStock = stock;
-      const prod = productos.find((p: any) => p.id === (mov as any).productId);
+      const prod = productos.find((p) => p.id === mov.productId);
       movimientosEnriquecidos.push({
-        id: (mov as any).id,
-        productId: (mov as any).productId || '',
-        quantity: typeof (mov as any).quantity === 'number' ? (mov as any).quantity : 0,
-        costPrice: typeof (mov as any).costPrice === 'number' ? (mov as any).costPrice : 0,
-        date: typeof (mov as any).date === 'string' ? (mov as any).date : ((mov as any).date?.toDate ? (mov as any).date.toDate().toISOString() : null),
-        type: (mov as any).type || 'ingreso',
-        cashierEmail: (mov as any).cashierEmail || '',
-        motivo: (mov as any).motivo || undefined,
-        productName: prod && (prod as any).name ? (prod as any).name : (mov as any).productId || '',
+        id: mov.id,
+        productId: mov.productId || '',
+        quantity: typeof mov.quantity === 'number' ? mov.quantity : 0,
+        costPrice: typeof mov.costPrice === 'number' ? mov.costPrice : 0,
+        date: typeof mov.date === 'string' ? mov.date : (typeof (mov.date as any)?.toDate === 'function' ? (mov.date as any).toDate().toISOString() : null),
+        type: mov.type as InventoryMovement['type'] || 'ingreso',
+        cashierEmail: mov.cashierEmail || '',
+        motivo: mov.motivo || undefined,
+        productName: prod && prod.name ? prod.name : mov.productId || '',
         initialStock,
         finalStock
       });
     }
   });
   // Ordenar todos los movimientos enriquecidos por fecha descendente
-  const getDateValue = (date: any) => {
-    if (date && typeof date.toDate === 'function') return date.toDate().getTime();
+  const getDateValue = (date: string | { toDate: () => Date } | Date) => {
+    if (typeof date === 'object' && date !== null && 'toDate' in date && typeof (date as any).toDate === 'function') return (date as { toDate: () => Date }).toDate().getTime();
     if (typeof date === 'string') return new Date(date).getTime();
     if (date instanceof Date) return date.getTime();
     return 0;

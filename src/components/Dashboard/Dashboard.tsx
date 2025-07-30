@@ -5,14 +5,14 @@ import {
   ShoppingCart, 
   Package, 
   AlertTriangle,
-  DollarSign,
-  Users
+  DollarSign
 } from 'lucide-react';
 import StatsCard from './StatsCard';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useAuth } from '../../contexts/AuthContext';
 import { obtenerVentas } from '../../lib/firestoreSales';
 import { obtenerProductos } from '../../lib/firestoreProducts';
+import { calculateDailyEarnings } from '../../utils/calculateDailyEarnings';
 
 
 const Dashboard: React.FC = () => {
@@ -20,12 +20,13 @@ const Dashboard: React.FC = () => {
   const [ventas, setVentas] = React.useState<Sale[]>([]);
   const [productos, setProductos] = React.useState<Product[]>([]);
   const [topProducts, setTopProducts] = React.useState<{ name: string; sales: number; revenue: number }[]>([]);
-  const [loadingTop, setLoadingTop] = React.useState(false);
+
+  
 
   // Calcular ventas reales de la semana agrupadas por día
   const salesData = React.useMemo(() => {
     // Inicializar estructura para cada día de la semana
-    const dias = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
+
     const hoy = new Date();
     // Buscar el lunes de la semana actual
     const primerDiaSemana = new Date(hoy);
@@ -39,8 +40,8 @@ const Dashboard: React.FC = () => {
       // Solo ventas de esta semana
       const diff = (fecha.getTime() - primerDiaSemana.getTime()) / (1000 * 60 * 60 * 24);
       if (diff < 0 || diff >= 7) return;
-      const dia = dias[fecha.getDay()];
-      ventasPorDia[dia] += Number(v.total) || 0;
+      const diaNombre = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'][fecha.getDay()];
+      ventasPorDia[diaNombre] += Number(v.total) || 0;
     });
     // Retornar en orden Lun-Dom
     return ['Lun','Mar','Mie','Jue','Vie','Sab','Dom'].map(dia => ({
@@ -81,11 +82,11 @@ const Dashboard: React.FC = () => {
       const fecha = v.createdAt instanceof Date ? v.createdAt : new Date(v.createdAt);
       const diff = (fecha.getTime() - primerDiaSemana.getTime()) / (1000 * 60 * 60 * 24);
       if (diff < 0 || diff >= 7) return;
-      (v.items || []).forEach((item: any) => {
+      (v.items || []).forEach((item: { productId: string; total?: number; salePrice?: number; quantity: number; }) => {
         // Buscar el producto para obtener la categoría
-        const prod = productos.find((p: any) => p.id === item.productId);
+        const prod = productos.find((p) => p.id === item.productId);
         const cat = prod?.category || 'Otros';
-        ventasPorCategoria[cat] = (ventasPorCategoria[cat] || 0) + (typeof item.total === 'number' ? item.total : 0);
+        ventasPorCategoria[cat] = (ventasPorCategoria[cat] || 0) + ((typeof item.salePrice === 'number' && typeof item.quantity === 'number') ? item.salePrice * item.quantity : 0);
       });
     });
     // Formatear para el gráfico
@@ -100,7 +101,6 @@ const Dashboard: React.FC = () => {
 
 React.useEffect(() => {
   if (!user) return;
-  setLoadingTop(true);
   Promise.all([
     obtenerVentas(),
     obtenerProductos()
@@ -109,10 +109,10 @@ React.useEffect(() => {
     setProductos(productosData);
     // Agrupar ventas por producto
     const productSales: Record<string, { name: string; sales: number; revenue: number }> = {};
-    ventasData.forEach((venta: any) => {
-      (venta.items || []).forEach((item: any) => {
+    ventasData.forEach((venta: Sale) => {
+      (venta.items || []).forEach((item: { productId: string; productName?: string; salePrice?: number; quantity: number }) => {
         if (!productSales[item.productId]) {
-          const prod = productosData.find((p: any) => p.id === item.productId);
+          const prod = productosData.find((p: Product) => p.id === item.productId);
           productSales[item.productId] = {
             name: (prod && typeof prod === 'object' && 'name' in prod && prod.name) ? prod.name : (item.productName || 'Producto'),
             sales: 0,
@@ -127,7 +127,7 @@ React.useEffect(() => {
       .sort((a, b) => b.sales - a.sales)
       .slice(0, 5);
     setTopProducts(top);
-  }).finally(() => setLoadingTop(false));
+  });
 }, [user]);
 
   return (
@@ -163,8 +163,6 @@ React.useEffect(() => {
           title="Ganancias del Día"
           value={`S/. ${(() => {
             try {
-              // Import dinámico para evitar error SSR
-              const { calculateDailyEarnings } = require('../../utils/calculateDailyEarnings');
               const profit = calculateDailyEarnings(ventas, productos);
               return profit.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             } catch {

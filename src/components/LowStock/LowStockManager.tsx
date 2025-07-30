@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { obtenerProductos } from '../../lib/firestoreProducts';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 
@@ -75,7 +76,15 @@ const LowStockManager: React.FC = () => {
                 <tr key={p.id} className="hover:bg-amber-50">
                   <td className="py-2 px-4 font-semibold text-gray-900 flex items-center gap-2">
                     {p.imageUrl && (
-                      <img src={p.imageUrl} alt={p.name} className="w-8 h-8 object-cover rounded mr-2 border border-amber-100" />
+                      <Image
+                        src={p.imageUrl}
+                        alt={p.name || 'Producto'}
+                        width={32}
+                        height={32}
+                        className="w-8 h-8 object-cover rounded mr-2 border border-amber-100"
+                        style={{ minWidth: 32, minHeight: 32 }}
+                        unoptimized
+                      />
                     )}
                     {p.name}
                   </td>
