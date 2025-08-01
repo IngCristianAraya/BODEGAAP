@@ -251,7 +251,9 @@ const missingSubcategory = subcategoryRequired && (!form.subcategory || form.sub
           {form.unitType === 'kg' && <span className="text-xs text-gray-500 mt-1">Ingresa el stock en kilogramos (ej: 2.500 para 2.5 kg).</span>}
           {form.unitType === 'unidad' && <span className="text-xs text-gray-500 mt-1">Ingresa el stock en unidades.</span>}
           {editProduct && (
-            <span className="text-xs text-gray-500 mt-1">El stock solo se modifica mediante &quot;Agregar ingreso&quot; o &quot;Ajustar stock&quot;.</span>
+            <span className="text-xs text-gray-500 mt-1">
+            {'El stock solo se modifica mediante "Agregar ingreso" o "Ajustar stock".'}
+          </span>
           )}
         </div>
         {/* Stock mínimo para alerta */}
